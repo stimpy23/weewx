@@ -562,7 +562,11 @@ class Extension(object):
         self.extdir = "%s/%s" % (self.tmpdir, self.basename)
 
     def load(self):
-        self.installer = None # FIXME
+        ifile = "%s/install.py" % self.extdir)
+        __import__(ifile)
+        module = sys.modules[ifile]
+        loader = getattr(module, 'loader')
+        self.installer = loader()
         self.installer.set_layout(self.get_layout())
 
     def install(self):
