@@ -6,7 +6,7 @@ from setup import Installer
 def loader():
     return ExtendedStatisticsInstaller()
 
-class ComputerMonitorInstaller(Installer):
+class ExtendedStatisticsInstaller(Installer):
     def __init__(self):
         super(Installer, self).__init__(
             version="0.1",

@@ -580,6 +580,7 @@ class Extension(object):
 
     def get_layout():
         '''return locations of components, based on how weewx was installed'''
+        # FIXME: detect how weewx was installed the modify accordingly
         return {
             'WEEWX_ROOT':  '/',
             'BIN_ROOT':    '/usr/share/weewx',
