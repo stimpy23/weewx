@@ -1,0 +1,181 @@
+##
+##This program is free software; you can redistribute it and/or modify
+##it under the terms of the GNU General Public License as published by
+##the Free Software Foundation; either version 2 of the License, or
+##(at your option) any later version.
+##
+##This program is distributed in the hope that it will be useful,
+##but WITHOUT ANY WARRANTY; without even the implied warranty of
+##MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##GNU General Public License for more details.
+##
+##
+##Beaufort wind scale calculations
+##
+#if $max_24h_gust_wind.knot.raw >= 64
+	#set $beaufort24 = 12
+	#set $beaufort24Desc = "Hurricane"
+#elif $max_24h_gust_wind.knot.raw >= 56
+	#set $beaufort24 = 11
+	#set $beaufort24Desc = "Violent Storm"
+#elif $max_24h_gust_wind.knot.raw >= 48
+	#set $beaufort24 = 10
+	#set $beaufort24Desc = "Storm"
+#elif $max_24h_gust_wind.knot.raw >= 41
+	#set $beaufort24 = 9
+	#set $beaufort24Desc = "Strong Gale"
+#elif $max_24h_gust_wind.knot.raw >= 34
+	#set $beaufort24 = 8
+	#set $beaufort24Desc = "Gale"
+#elif $max_24h_gust_wind.knot.raw >= 28
+	#set $beaufort24 = 7
+	#set $beaufort24Desc = "Moderate Gale"
+#elif $max_24h_gust_wind.knot.raw >= 22
+	#set $beaufort24 = 6
+	#set $beaufort24Desc = "Strong Breeze"
+#elif $max_24h_gust_wind.knot.raw >= 17
+	#set $beaufort24 = 5
+	#set $beaufort24Desc = "Fresh Breeze"
+#elif $max_24h_gust_wind.knot.raw >= 11
+	#set $beaufort24 = 4
+	#set $beaufort24Desc = "Moderate Breeze"
+#elif $max_24h_gust_wind.knot.raw >= 7
+	#set $beaufort24 = 3
+	#set $beaufort24Desc = "Gentle Breeze"
+#elif $max_24h_gust_wind.knot.raw >= 4
+	#set $beaufort24 = 2
+	#set $beaufort24Desc = "Light Breeze"
+#elif $max_24h_gust_wind.knot.raw >= 1
+	#set $beaufort24 = 1
+	#set $beaufort24Desc = "Light Air"
+#else
+	#set $beaufort24 = 0
+	#set $beaufort24Desc = "Calm"
+#end if
+##
+##End beaufort wind scale calculations
+##
+#*SS|000*#{"date":"$current.dateTime.format("%H:%M")", #slurp
+#try
+#set $dateformat=$skin_dict.Units.TimeFormats.date_f.replace("%","").replace("-","").lower()
+#except
+#set $dateformat="d/m/y"
+#end try
+#*SS|001*#"dateFormat":"$dateformat", #slurp
+#*SS|002*#"temp":"$current.outTemp", #slurp
+#*SS|003*#"tempTL":"$day.outTemp.min", #slurp
+#*SS|004*#"tempTH":"$day.outTemp.max", #slurp
+#*SS|005*#"intemp":"$current.inTemp", #slurp
+#*SS|006*#"dew":"$current.dewpoint", #slurp
+#*SS|007*#"dewpointTL":"$day.dewpoint.min", #slurp
+#*SS|008*#"dewpointTH":"$day.dewpoint.max", #slurp
+#if $current.extraTemp2.has_data
+#*SS|009*#"apptemp":"$current.extraTemp2", #slurp
+#*SS|010*#"apptempTL":"$day.extraTemp2.min", #slurp
+#*SS|011*#"apptempTH":"$day.extraTemp2.max", #slurp
+#elif $current.appTemp.has_data
+#*SS|009*#"apptemp":"$current.appTemp", #slurp
+#*SS|010*#"apptempTL":"$day.appTemp.min", #slurp
+#*SS|011*#"apptempTH":"$day.appTemp.max", #slurp
+#else
+#*SS|009*#"apptemp":"0", #slurp
+#*SS|010*#"apptempTL":"0", #slurp
+#*SS|011*#"apptempTH":"0", #slurp
+#end if
+#*SS|012*#"wchill":"$current.windchill", #slurp
+#*SS|013*#"wchillTL":"$day.windchill.min", #slurp
+#*SS|014*#"heatindex":"$current.heatindex", #slurp
+#*SS|015*#"heatindexTH":"$day.heatindex.max", #slurp
+#if $current.extraTemp1.has_data
+#*SS|016*#"humidex":"$current.extraTemp1", #slurp
+#elif $current.appTemp.has_data
+#*SS|016*#"humidex":"$current.humidex", #slurp
+#else
+#*SS|016*#"humidex":"0", #slurp
+#end if
+#*SS|017*#"wlatest":"$current.windGust", #slurp
+#*SS|018*#"wspeed":"$current.windSpeed", #slurp
+#*SS|019*#"wgust":"$max_10_gust_wind", #slurp
+#*SS|020*#"wgustTM":"$day.wind.max", #slurp
+#*SS|021*#"bearing":"$current.windDir", #slurp
+### FIXME
+#*SS|022*#"avgbearing":"$current.windGustDir", #slurp
+#*SS|023*#"press":"$current.barometer", #slurp
+#*SS|024*#"pressTL":"$day.barometer.min", #slurp
+#*SS|025*#"pressTH":"$day.barometer.max", #slurp
+#*SS|026*#"pressL":"$alltime.barometer.min", #slurp
+#*SS|027*#"pressH":"$alltime.barometer.max", #slurp
+#*SS|028*#"rfall":"$day.rain.sum", #slurp
+#*SS|029*#"rrate":"$current.rainRate", #slurp
+#*SS|030*#"rrateTM":"$day.rainRate.max", #slurp
+#*SS|031*#"hum":"$current.outHumidity", #slurp
+#*SS|032*#"humTL":"$day.outHumidity.min", #slurp
+#*SS|033*#"humTH":"$day.outHumidity.max", #slurp
+#*SS|034*#"inhum":"$current.inHumidity", #slurp
+#*SS|035*#"SensorContactLost":"0", #slurp
+#*SS|036*#"forecast":"$forecast_text", #slurp
+#*SS|037*#"tempunit":"$unit.label.outTemp", #slurp
+#*SS|038*#"windunit":"$unit.label.windSpeed", #slurp
+#*SS|039*#"pressunit":"$unit.label.barometer", #slurp
+#*SS|040*#"rainunit":"$unit.label.rain", #slurp
+#*SS|041*#"temptrend":"$trend.outTemp.format("%+.2f")", #slurp
+#*SS|042*#"TtempTL":"$day.outTemp.mintime", #slurp
+#*SS|043*#"TtempTH":"$day.outTemp.maxtime", #slurp
+#*SS|044*#"TdewpointTL":"$day.dewpoint.mintime", #slurp
+#*SS|045*#"TdewpointTH":"$day.dewpoint.maxtime", #slurp
+#if $current.extraTemp2.has_data
+#*SS|046*#"TapptempTL":"$day.extraTemp2.mintime", #slurp
+#*SS|047*#"TapptempTH":"$day.extraTemp2.maxtime", #slurp
+#elif $current.appTemp.has_data
+#*SS|046*#"TapptempTL":"$day.appTemp.mintime", #slurp
+#*SS|047*#"TapptempTH":"$day.appTemp.maxtime", #slurp
+#else
+#*SS|046*#"TapptempTL":"00:00", #slurp
+#*SS|047*#"TapptempTH":"00:00", #slurp
+#end if
+#*SS|048*#"TwchillTL":"$day.windchill.mintime", #slurp
+#*SS|049*#"TheatindexTH":"$day.heatindex.maxtime", #slurp
+#*SS|050*#"TrrateTM":"$day.rainRate.maxtime", #slurp
+### FIXME
+#*SS|051*#"ThourlyrainTH":"$day.heatindex.maxtime", #slurp
+#*SS|052*#"LastRainTipISO":"$last_rain.format($skin_dict.Units.TimeFormats.date_f) $last_rain.format("%H:%M")", #slurp
+### FIXME
+#*SS|053*#"hourlyrainTH":"0", #slurp
+#*SS|054*#"ThumTL":"$day.outHumidity.mintime", #slurp
+#*SS|055*#"ThumTH":"$day.outHumidity.maxtime", #slurp
+#*SS|056*#"TpressTL":"$day.barometer.mintime", #slurp
+#*SS|057*#"TpressTH":"$day.barometer.maxtime", #slurp
+#*SS|058*#"presstrendval":"$trend180barometer.format("%+.2f")", #slurp
+#*SS|059*#"Tbeaufort":"$beaufort24", #slurp
+#*SS|060*#"TwgustTM":"$day.wind.maxtime", #slurp
+#if $varExists('day.windAv.count')
+#*SS|061*#"windTM":"$day.windAv.max", #slurp
+#else
+#*SS|061*#"windTM":"0", #slurp
+#end if
+#*SS|062*#"bearingTM":"$day.wind.gustdir", #slurp
+### FIXME - should this be UTC or local or doesn't it matter?
+#*SS|063*#"timeUTC":"$current.dateTime.format("%Y,%m,%d,%H,%M,%S")", #slurp
+### FIXME
+#*SS|064*#"BearingRangeFrom10":"$current.windDir", #slurp
+### FIXME
+#*SS|065*#"BearingRangeTo10":"$current.windGustDir", #slurp
+#*SS|066*#"UV":"$current.UV", #slurp
+#*SS|067*#"UVTH":"$day.UV.max", #slurp
+#*SS|068*#"SolarRad":"$current.radiation", #slurp
+### FIXME
+#*SS|069*#"CurrentSolarMax":"$day.radiation.max", #slurp
+#*SS|070*#"SolarTM":"$day.radiation.max", #slurp
+### FIXME
+#*SS|071*#"domwinddir":"$current.windDir.ordinal_compass", #slurp
+### FIXME
+#*SS|072*#"WindRoseData":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,63.0,1842.0,2156.0,523.0,0.0,0.0,0.0], #slurp
+#try
+#set $windrun = round(float($day.wind.avg.raw) * (float($current.dateTime.format("%H")) + float($current.dateTime.format("%M"))/60), 1)
+#except
+#set $windrun = 0
+#end try
+#*SS|073*#"windrun":"$windrun", #slurp
+#*SS|074*#"version":"$station.version", #slurp
+#*SS|075*#"build":"00", #slurp
+#*SS|076*#"ver":"10"}#slurp

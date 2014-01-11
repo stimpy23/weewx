@@ -1,0 +1,202 @@
+##
+##This program is free software; you can redistribute it and/or modify
+##it under the terms of the GNU General Public License as published by
+##the Free Software Foundation; either version 2 of the License, or
+##(at your option) any later version.
+##
+##This program is distributed in the hope that it will be useful,
+##but WITHOUT ANY WARRANTY; without even the implied warranty of
+##MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##GNU General Public License for more details.
+##
+##
+##Cache WD tagged stats required in clientraw
+##
+#set $rainYearmonthlyArray = $yearmonthly.rain.sumQuery
+#set $outTempMonthdailyMaxArray = $monthdaily.outTemp.maxQuery
+#set $outTempMonthdailyMinArray = $monthdaily.outTemp.minQuery
+#set $rainMonthdailyArray = $monthdaily.rain.sumQuery
+#set $barometerMonthdailyArray = $monthdaily.barometer.avgQuery
+#set $windSpeedMonthdailyArray = $monthdaily.wind.avgQuery
+#set $windMonthdailyVecdirArray = $monthdaily.wind.vecdirQuery
+#set $outHumidityMonthdailyArray = $monthdaily.outHumidity.avgQuery
+#set $outTempSixhourArray = $sixhour.outTemp.avgQuery
+#set $barometerSixhourArray = $sixhour.barometer.avgQuery
+#set $outHumiditySixhourArray = $sixhour.outHumidity.avgQuery
+#set $windSixhourVecdirArray = $sixhour.windDir.avgQuery
+#set $windSpeedSixhourArray = $sixhour.windSpeed.avgQuery
+#set $radiationSixhourArray = $sixhour.radiation.avgQuery
+#set $UVSixhourArray = $sixhour.UV.avgQuery
+#set $inTempSixhourArray = $sixhour.inTemp.avgQuery
+##
+##End Cache WD tagged stats required in clientraw
+##
+##
+##Assign monthly rain totals to correct month
+##
+#set $moY = int($current.dateTime.format("%m"))
+#set $rainJan = rainYearmonthlyArray[(13-$moY)%12].mm.string("0.0")
+#set $rainFeb = rainYearmonthlyArray[(14-$moY)%12].mm.string("0.0")
+#set $rainMar = rainYearmonthlyArray[(15-$moY)%12].mm.string("0.0")
+#set $rainApr = rainYearmonthlyArray[(16-$moY)%12].mm.string("0.0")
+#set $rainMay = rainYearmonthlyArray[(17-$moY)%12].mm.string("0.0")
+#set $rainJun = rainYearmonthlyArray[(18-$moY)%12].mm.string("0.0")
+#set $rainJul = rainYearmonthlyArray[(19-$moY)%12].mm.string("0.0")
+#set $rainAug = rainYearmonthlyArray[(20-$moY)%12].mm.string("0.0")
+#set $rainSep = rainYearmonthlyArray[(21-$moY)%12].mm.string("0.0")
+#set $rainOct = rainYearmonthlyArray[(22-$moY)%12].mm.string("0.0")
+#set $rainNov = rainYearmonthlyArray[(23-$moY)%12].mm.string("0.0")
+#set $rainDec = rainYearmonthlyArray[(12-$moY)%12].mm.string("0.0")
+##
+##End assign monthly rain totals to correct month
+##
+#*WD|000*#12345 #slurp
+#*WD|001*##*Previous 31 days max Temperature Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$outTempMonthdailyMaxArray[$i].degree_C #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|032*##*Previous 31 days min Temperature Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$outTempMonthdailyMinArray[$i].degree_C #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|063*##*Previous 31 days rainfall Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$rainMonthdailyArray[$i].mm #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|094*##*Previous 31 days barometer Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$barometerMonthdailyArray[$i].hPa #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|125*##*Previous 31 days avg windSpeed Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$windSpeedMonthdailyArray[$i].knot #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|156*##*Previous 31 days wind direction Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$windMonthdailyVecdirArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|187*#$rainJan #slurp
+#*WD|188*#$rainFeb #slurp
+#*WD|189*#$rainMar #slurp
+#*WD|190*#$rainApr #slurp
+#*WD|191*#$rainMay #slurp
+#*WD|192*#$rainJun #slurp
+#*WD|193*#$rainJul #slurp
+#*WD|194*#$rainAug #slurp
+#*WD|195*#$rainSep #slurp
+#*WD|196*#$rainOct #slurp
+#*WD|197*#$rainNov #slurp
+#*WD|198*#$rainDec #slurp
+#*WD|199*##*Previous 31 days outHumidity Readings. Day 1=31 days ago, Day31=yesterday*##slurp
+#for $i in range (31):
+#try
+$outHumidityMonthdailyArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|230*#$current.dateTime.format("%H") #slurp
+#*WD|231*#$current.dateTime.format("%M") #slurp
+#*WD|232*#$current.dateTime.format("%d") #slurp
+#*WD|233*##*Previous 7 days of 6 hourly Temperature Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$outTempSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|261*##*Previous 7 days of 6 hourly Barometer Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$barometerSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|289*##*Previous 7 days of 6 hourly Humidity Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$outHumiditySixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|317*##*Previous 7 days of 6 hourly wind direction Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$windSixhourVecdirArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|345*##*Previous 7 days of 6 hourly Wind Speed Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$windSpeedSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|373*##*Previous 7 days of 6 hourly Radiation Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$radiationSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|401*##*Previous 7 days of 6 hourly UV Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$UVSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|429*#0 #slurp
+#*WD|430*#$Extras.Avg_Jan_Rainfall #slurp
+#*WD|431*#$Extras.Avg_Feb_Rainfall #slurp
+#*WD|432*#$Extras.Avg_Mar_Rainfall #slurp
+#*WD|433*#$Extras.Avg_Apr_Rainfall #slurp
+#*WD|434*#$Extras.Avg_May_Rainfall #slurp
+#*WD|435*#$Extras.Avg_Jun_Rainfall #slurp
+#*WD|436*#$Extras.Avg_Jul_Rainfall #slurp
+#*WD|437*#$Extras.Avg_Aug_Rainfall #slurp
+#*WD|438*#$Extras.Avg_Sep_Rainfall #slurp
+#*WD|439*#$Extras.Avg_Oct_Rainfall #slurp	
+#*WD|440*#$Extras.Avg_Nov_Rainfall #slurp
+#*WD|441*#$Extras.Avg_Dec_Rainfall #slurp	
+#*WD|442*##*Previous 7 days of 6 hourly Indoor Temperature Readings. Day 1 #1=7 days ago, Day 7 #4=now*##slurp
+#for $i in range(28)
+#try
+$inTempSixhourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|470*#!!EOR!! #slurp

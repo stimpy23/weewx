@@ -1,0 +1,298 @@
+##errorCatcher Echo
+##
+##This program is free software; you can redistribute it and/or modify
+##it under the terms of the GNU General Public License as published by
+##the Free Software Foundation; either version 2 of the License, or
+##(at your option) any later version.
+##
+##This program is distributed in the hope that it will be useful,
+##but WITHOUT ANY WARRANTY; without even the implied warranty of
+##MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##GNU General Public License for more details.
+##
+##Python code to calculate/convert WD tags from Weewx tags
+##========================================================
+##
+#import math
+##
+##
+##Setup date time format strings
+##
+#set $timeFormat = $skin_dict.Units.TimeFormats.time_f
+#set $secondFormat = $skin_dict.Units.TimeFormats.second_f
+#set $timeLongFormat = $timeFormat + ":" + $secondFormat
+#set $minuteFormat = $skin_dict.Units.TimeFormats.minute_f
+#set $hourFormat = $skin_dict.Units.TimeFormats.hour_f
+#set $dateFormat = $skin_dict.Units.TimeFormats.date_f
+#set $dayFormat = $skin_dict.Units.TimeFormats.day_f
+#set $monthFormat = $skin_dict.Units.TimeFormats.month_f
+#set $yearFormat = $skin_dict.Units.TimeFormats.year_f
+##
+##End Setup date time format strings
+##
+##Cache WD tagged stats required in clientraw
+##
+#set $windSpeedHourArray = $hour.windSpeed.avgQuery
+#set $rainHourArray = $hour.rain.sumQuery
+##
+##End Cache WD tagged stats required in clientraw
+##
+##
+## Cloud height calculations
+##
+#try
+    #set $cloudHeight = int(($current.outTemp.raw - $current.dewpoint.raw) / 4.4 * 1000) + $station.altitude.raw
+#except
+    #set $cloudHeight = 0
+#end try
+##
+## End Cloud height calculations
+##
+## Wind run calculations
+##
+#try
+	#set $dayWindRun = round(float($day.wind.avg.raw) * (float($current.dateTime.format($hourFormat)) + float($current.dateTime.format($minuteFormat))/60), 1)
+#except
+	#set $dayWindRun = 0
+#end try
+##
+## End Wind run calculations
+##
+#*WD|000*#12345 #slurp
+#*WD|001*#$day.wind.avg.knot.format("%.1f") #slurp
+#*WD|002*#$current.windSpeed.knot.format("%.1f") #slurp
+#*WD|003*#$current.windDir #slurp
+#*WD|004*#$current.outTemp.degree_C #slurp
+#*WD|005*#$current.outHumidity #slurp
+#*WD|006*#$current.barometer.hPa #slurp
+#*WD|007*#$day.rain.sum.mm #slurp
+#*WD|008*#$month.rain.sum.mm #slurp
+#*WD|009*#$year.rain.sum.mm #slurp
+#set $rainRate = $current.rainRate.raw
+#set $rainRateMax = $day.rainRate.max.raw
+#try
+#if $unit.unit_type_dict.group_rainrate == "cm_per_hour"
+#set $rainRateMmPerMin = round($rainRate/6,3)
+#set $rainRateMaxMmPerMin = round($rainRateMax/6,3)
+#elif $unit.unit_type_dict.group_rainrate == "inch_per_hour"
+#set $rainRateMmPerMin = round($rainRate*25.4/60,3)
+#set $rainRateMaxMmPerMin = round($rainRateMax*25.4/60,3)
+#else
+#set $rainRateMmPerMin = round($rainRate/60,3)
+#set $rainRateMaxMmPerMin = round($rainRateMax/60,3)
+#end if
+#except
+#set $rainRateMmPerMin = 0.0
+#set $rainRateMaxMmPerMin = 0.0
+#end try
+#*WD|010*#$rainRateMmPerMin #slurp
+#*WD|011*#$rainRateMaxMmPerMin #slurp
+#*WD|012*#$current.inTemp.degree_C #slurp
+#*WD|013*#$current.inHumidity #slurp
+#*WD|014*#$current.soilTemp1.degree_C #slurp
+#if $forecast_icon != ""
+#*WD|015*#$forecast_icon #slurp
+#else
+#*WD|015*#--- #slurp
+#end if
+#*WD|016*#0 #slurp
+#*WD|017*#0 #slurp
+#*WD|018*#0 #slurp
+#*WD|019*#$yesterday.rain.sum.mm #slurp
+#*WD|020*#-100 #slurp
+#*WD|021*#-100 #slurp
+#*WD|022*#-100 #slurp
+#*WD|023*#-100 #slurp
+#*WD|024*#-100 #slurp
+#*WD|025*#-100 #slurp
+#*WD|026*#-100 #slurp
+#*WD|027*#-100 #slurp
+#*WD|028*#-100 #slurp
+#*WD|029*#$current.dateTime.format($hourFormat) #slurp
+#*WD|030*#$current.dateTime.format($minuteFormat) #slurp
+#*WD|031*#$current.dateTime.format($secondFormat) #slurp
+#set $stationLocation = $station.location.replace(" ","")
+#*WD|032*#$stationLocation-$current.dateTime.format($timeLongFormat) #slurp
+#*WD|033*#0 #slurp
+#*WD|034*#$current.radiation #slurp
+#*WD|035*#$current.dateTime.format($dayFormat) #slurp
+#*WD|036*#$current.dateTime.format($monthFormat) #slurp
+#*WD|037*#100 #slurp
+#*WD|038*#100 #slurp
+#*WD|039*#100 #slurp
+#*WD|040*#100 #slurp
+#*WD|041*#100 #slurp
+#*WD|042*#100 #slurp
+#*WD|043*#100 #slurp
+#*WD|044*#$current.windchill.degree_C #slurp
+#if $current.extraTemp1.has_data
+#*WD|045*#$current.extraTemp1.degree_C #slurp
+#elif $current.humidex.has_data
+#*WD|045*#$current.humidex.degree_C #slurp
+#else
+#try
+#set $humidex = $skin_dict.Units.StringFormats.degree_C %  ($current.outTemp.degree_C.raw+5/9*(6.112*10**(7.5*$current.outTemp.degree_C.raw/(273.7+$current.outTemp.degree_C.raw))*$current.outHumidity.raw/100-10))
+#*WD|045*#$humidex #slurp
+#except
+#*WD|045*#0 #slurp
+#end try
+#end if
+#*WD|046*#$day.outTemp.max.degree_C #slurp
+#*WD|047*#$day.outTemp.min.degree_C #slurp
+#if $forecast_icon != ""
+#*WD|048*#$forecast_icon #slurp
+#else
+#*WD|048*#--- #slurp
+#end if
+#if $forecast_text != ""
+#*WD|049*#$forecast_text #slurp
+#else
+#*WD|049*#--- #slurp
+#end if
+#*WD|050*##if $varExists('trend') then $trend.barometer.format("%+.2f") else 0# #slurp
+#*WD|051*##*Previous 20 Hours Wind Knots Readings*##slurp
+#for $i in range (4,24):
+#try
+$windSpeedHourArray[$i].knot #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|071*#$day.wind.max.knot.format("%.1f") #slurp
+#*WD|072*#$current.dewpoint.degree_C #slurp
+#*WD|073*#$cloudHeight #slurp
+#*WD|074*#$current.dateTime.format($dateFormat) #slurp
+#if $day.extraTemp1.has_data
+#*WD|075*#$day.extraTemp1.max.degree_C #slurp
+#elif $day.humidex.has_data
+#*WD|075*#$day.humidex.max.degree_C #slurp
+#else
+#*WD|075*#0 #slurp
+#end if
+#if $day.extraTemp1.has_data
+#*WD|076*#$day.extraTemp1.min.degree_C #slurp
+#elif $day.humidex.has_data
+#*WD|076*#$day.humidex.min.degree_C #slurp
+#else
+#*WD|076*#0 #slurp
+#end if
+#*WD|077*#$day.windchill.max.degree_C #slurp
+#*WD|078*#$day.windchill.min.degree_C #slurp
+#*WD|079*#$current.UV #slurp
+#*WD|080*#$ago60.windSpeed.knot #slurp
+#*WD|081*#$ago54.windSpeed.knot #slurp
+#*WD|082*#$ago48.windSpeed.knot #slurp
+#*WD|083*#$ago42.windSpeed.knot #slurp
+#*WD|084*#$ago36.windSpeed.knot #slurp
+#*WD|085*#$ago30.windSpeed.knot #slurp
+#*WD|086*#$ago24.windSpeed.knot #slurp
+#*WD|087*#$ago18.windSpeed.knot #slurp
+#*WD|088*#$ago12.windSpeed.knot #slurp
+#*WD|089*#$ago6.windSpeed.knot #slurp
+#*WD|090*#$ago60.outTemp.degree_C #slurp
+#*WD|091*#$ago54.outTemp.degree_C #slurp
+#*WD|092*#$ago48.outTemp.degree_C #slurp
+#*WD|093*#$ago42.outTemp.degree_C #slurp
+#*WD|094*#$ago36.outTemp.degree_C #slurp
+#*WD|095*#$ago30.outTemp.degree_C #slurp
+#*WD|096*#$ago24.outTemp.degree_C #slurp
+#*WD|097*#$ago18.outTemp.degree_C #slurp
+#*WD|098*#$ago12.outTemp.degree_C #slurp
+#*WD|099*#$ago6.outTemp.degree_C #slurp
+147#*WD|100*##*Previous 10 Hours Rain Readings*##slurp
+#for $i in range (10):
+#try
+$rainHourArray[$i].mm #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|110*#$day.heatindex.max.degree_C #slurp
+#*WD|111*#$day.heatindex.min.degree_C #slurp
+#*WD|112*#$current.heatindex.degree_C #slurp
+#*WD|113*#$day.wind.avg.knot.format("%.1f") #slurp
+#*WD|114*#0 #slurp
+#*WD|115*#--- #slurp
+#*WD|116*#--- #slurp
+#*WD|117*#$current.windDir #slurp
+#*WD|118*#0 #slurp
+#*WD|119*#0 #slurp
+#*WD|120*#0 #slurp
+#*WD|121*#0 #slurp
+#*WD|122*#0 #slurp
+#*WD|123*#0 #slurp
+#*WD|124*#0 #slurp
+#*WD|125*#0 #slurp
+#*WD|126*#0 #slurp
+#*WD|127*#$current.radiation #slurp
+#*WD|128*#$day.inTemp.max.degree_C #slurp
+#*WD|129*#$day.inTemp.min.degree_C #slurp
+#if $current.extraTemp2.has_data
+#*WD|130*#$current.extraTemp2.degree_C #slurp
+#elif $current.appTemp.has_data
+#*WD|130*#$current.appTemp.degree_C #slurp
+#else
+#set $apptemp = round($current.outTemp.degree_C.raw+(0.33*($current.outHumidity.raw/100*6.105*math.exp(17.27*$current.outTemp.degree_C.raw/(237.7+$current.outTemp.degree_C.raw))))-(0.7*$current.windSpeed.meter_per_second.raw)-4,1)
+#*WD|130*#$apptemp #slurp
+#end if
+#*WD|131*#$day.barometer.max.hPa #slurp
+#*WD|132*#$day.barometer.min.hPa #slurp
+#*WD|133*#$day.wind.max.knot.format("%.1f") #slurp
+#*WD|134*#$day.wind.maxtime #slurp
+#*WD|135*#$day.wind.maxtime #slurp
+#if $day.extraTemp2.has_data
+#*WD|136*#$day.extraTemp2.max.degree_C #slurp
+#*WD|137*#$day.extraTemp2.min.degree_C #slurp
+#elif $current.appTemp.has_data
+#*WD|136*#$day.appTemp.max.degree_C #slurp
+#*WD|137*#$day.appTemp.min.degree_C #slurp
+#else
+#*WD|136*#0 #slurp
+#*WD|137*#0 #slurp
+#end if
+#*WD|138*#$day.dewpoint.max.degree_C #slurp
+#*WD|139*#$day.dewpoint.min.degree_C #slurp
+#*WD|140*#$current.windGust.knot.format("%.1f") #slurp
+#*WD|141*#$current.dateTime.format($yearFormat) #slurp
+#*WD|142*#0 #slurp
+#set $trendBool=-1 + 2*int($trend.outTemp >= 0)
+#*WD|143*#$trendBool #slurp
+#set $trendBool=-1 + 2*int($trend.outHumidity >= 0)
+#*WD|144*#$trendBool #slurp
+#if $current.extraTemp1.has_data
+    #set $trendBool=-1 + 2*int($trend.extraTemp1 >= 0)
+#elif $current.humidex.has_data
+    #set $trendBool=-1 + 2*int($trend.extraTemp1 >= 0)
+#else
+#set $trendBool=0
+#end if
+#*WD|145*#$trendBool #slurp
+#*WD|146*#$ago60.windDir #slurp
+#*WD|147*#$ago54.windDir #slurp
+#*WD|148*#$ago48.windDir #slurp
+#*WD|149*#$ago42.windDir #slurp
+#*WD|150*#$ago36.windDir #slurp
+#*WD|151*#$ago30.windDir #slurp
+#*WD|152*#$ago24.windDir #slurp
+#*WD|153*#$ago18.windDir #slurp
+#*WD|154*#$ago12.windDir #slurp
+#*WD|155*#$ago6.windDir #slurp
+#*WD|156*#0 #slurp
+#*WD|157*#0 #slurp
+#*WD|158*#0 #slurp
+#*WD|159*#0 #slurp
+#*WD|160*#$almanac.lat #slurp
+#*WD|161*##if $station.longitude[2] == 'E'#-#end if#$almanac.lon #slurp
+#*WD|162*#0 #slurp
+#*WD|163*#$day.outHumidity.max #slurp
+#*WD|164*#$day.outHumidity.min #slurp
+#*WD|165*#$current.windSpeed.knot.format("%.1f") #slurp
+#*WD|166*#$day.windchill.mintime #slurp
+#*WD|167*#0 #slurp
+#*WD|168*#0 #slurp
+#*WD|169*#0 #slurp
+#*WD|170*#0 #slurp
+#*WD|171*#0 #slurp
+#*WD|172*#0 #slurp
+#*WD|173*#$dayWindRun #slurp
+#*WD|174*#!!EOR!! #slurp

@@ -1,0 +1,875 @@
+##
+##This program is free software; you can redistribute it and/or modify
+##it under the terms of the GNU General Public License as published by
+##the Free Software Foundation; either version 2 of the License, or
+##(at your option) any later version.
+##
+##This program is distributed in the hope that it will be useful,
+##but WITHOUT ANY WARRANTY; without even the implied warranty of
+##MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##GNU General Public License for more details.
+##
+##
+##Cache WD tagged stats required in clientrawextra
+##
+#set $windSpeedHourArray = $hour.windSpeed.avgQuery
+#set $outTempHourArray = $hour.outTemp.avgQuery
+#set $rainHourArray = $hour.rain.sumQuery
+#set $barometerHourArray = $hour.barometer.avgQuery
+#set $radiationHourArray = $hour.radiation.avgQuery
+#set $UVHourArray = $hour.UV.avgQuery
+#set $windDirHourArray = $hour.windDir.avgQuery
+#set $outHumidityHourArray = $hour.outHumidity.avgQuery
+#set $inTempHourArray = $hour.inTemp.avgQuery
+#set $rainWeekdailyArray = $weekdaily.rain.sumQuery
+#set $dateTimeHourArray = $hour.dateTime.datetimeQuery
+##
+##End Cache WD tagged stats required in clientrawextra
+##
+#import time
+#set $timenow = $time.time()
+#if $almanac.hasExtras
+#set $dayLength = $time.gmtime($almanac.sun.set.raw - $almanac.sun.rise.raw)
+#if ($timenow > $almanac.sun.rise.raw) and ($timenow < $almanac.sun.set.raw)
+#set $dayornight = "D"
+#else
+#set $dayornight = "N"
+#end if
+#set $moonDays = int(round(($current.dateTime.raw - $almanac.previous_new_moon.raw)/86400,0))
+#else
+#set $dayLength = $time.gmtime($almanac.sunset.raw - $almanac.sunrise.raw)
+#if ($timenow > $almanac.sunrise.raw) and ($timenow < $almanac.sunset.raw)
+#set $dayornight = "D"
+#else
+#set $dayornight = "N"
+#end if
+#end if
+#set $doW = int($current.dateTime.format("%w"))
+#try
+#set $rainMon = int(rainWeekdailyArray[($doW+3)%7].mm.raw*10)
+#except
+#set $rainMon = 0
+#end try
+#try
+#set $rainTue = int(rainWeekdailyArray[($doW+4)%7].mm.raw*10)
+#except
+#set $rainTue = 0
+#end try
+#try
+#set $rainWed = int(rainWeekdailyArray[($doW+5)%7].mm.raw*10)
+#except
+#set $rainWed = 0
+#end try
+#try
+#set $rainThu = int(rainWeekdailyArray[($doW+6)%7].mm.raw*10)
+#except
+#set $rainThu = 0
+#end try
+#try
+#set $rainFri = int(rainWeekdailyArray[$doW%7].mm.raw*10)
+#except
+#set $rainFri = 0
+#end try
+#try
+#set $rainSat = int(rainWeekdailyArray[($doW+1)%7].mm.raw*10)
+#except
+#set $rainSat = 0
+#end try
+#try
+#set $rainSun = int(rainWeekdailyArray[($doW+2)%7].mm.raw*10)
+#except
+#set $rainSun = 0
+#end try
+#set $Time="%H:%M"
+#set $Hour="%H"
+#set $Minute="%M"
+#set $Day="%d"
+#set $Month="%m"
+#set $Year="%Y"
+#set $running_total_rain = 0
+##
+#*WD|000*#12345 #slurp
+#*WD|001*##*Windspeed Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$windSpeedHourArray[$i].knot #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|021*##*outTemp Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$outTempHourArray[$i].degree_C #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|041*##*rain Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$rainHourArray[$i].mm #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|061*#$month.outTemp.max #slurp
+#*WD|062*#$month.outTemp.maxtime.format($Hour) #slurp
+#*WD|063*#$month.outTemp.maxtime.format($Minute) #slurp
+#*WD|064*#$month.outTemp.maxtime.format($Day) #slurp
+#*WD|065*#$month.outTemp.maxtime.format($Month) #slurp
+#*WD|066*#$month.outTemp.maxtime.format($Year) #slurp
+#*WD|067*#$month.outTemp.min #slurp
+#*WD|068*#$month.outTemp.mintime.format($Hour) #slurp
+#*WD|069*#$month.outTemp.mintime.format($Minute) #slurp
+#*WD|070*#$month.outTemp.mintime.format($Day) #slurp
+#*WD|071*#$month.outTemp.mintime.format($Month) #slurp
+#*WD|072*#$month.outTemp.mintime.format($Year) #slurp
+#*WD|073*#$month.wind.max.knot #slurp
+#*WD|074*#$month.wind.maxtime.format($Hour) #slurp
+#*WD|075*#$month.wind.maxtime.format($Minute) #slurp
+#*WD|076*#$month.wind.maxtime.format($Day) #slurp
+#*WD|077*#$month.wind.maxtime.format($Month) #slurp
+#*WD|078*#$month.wind.maxtime.format($Year) #slurp
+#*WD|079*#$month.rainRate.max #slurp
+#*WD|080*#$month.rainRate.maxtime.format($Hour) #slurp
+#*WD|081*#$month.rainRate.maxtime.format($Minute) #slurp
+#*WD|082*#$month.rainRate.maxtime.format($Day) #slurp
+#*WD|083*#$month.rainRate.maxtime.format($Month) #slurp
+#*WD|084*#$month.rainRate.maxtime.format($Year) #slurp
+#*WD|085*#$month.barometer.min #slurp
+#*WD|086*#$month.barometer.mintime.format($Hour) #slurp
+#*WD|087*#$month.barometer.mintime.format($Minute) #slurp
+#*WD|088*#$month.barometer.mintime.format($Day) #slurp
+#*WD|089*#$month.barometer.mintime.format($Month) #slurp
+#*WD|090*#$month.barometer.mintime.format($Year) #slurp
+#*WD|091*#$month.barometer.max #slurp
+#*WD|092*#$month.barometer.maxtime.format($Hour) #slurp
+#*WD|093*#$month.barometer.maxtime.format($Minute) #slurp
+#*WD|094*#$month.barometer.maxtime.format($Day) #slurp
+#*WD|095*#$month.barometer.maxtime.format($Month) #slurp
+#*WD|096*#$month.barometer.maxtime.format($Year) #slurp
+#*WD|097*#$month.rain.sum #slurp
+#*WD|098*#$month.rain.maxtime.format($Hour) #slurp
+#*WD|099*#$month.rain.maxtime.format($Minute) #slurp
+#*WD|100*#$month.rain.maxtime.format($Day) #slurp
+#*WD|101*#$month.rain.maxtime.format($Month) #slurp
+#*WD|102*#$month.rain.maxtime.format($Year) #slurp
+#*WD|103*#0 #slurp
+#*WD|104*#- #slurp
+#*WD|105*#- #slurp
+#*WD|106*#- #slurp
+#*WD|107*#- #slurp
+#*WD|108*#- #slurp
+#if $varExists('day.windAv.count')
+#*WD|109*#$month.windAv.max #slurp
+#*WD|110*#$month.windAv.maxtime.format($Hour) #slurp
+#*WD|111*#$month.windAv.maxtime.format($Minute) #slurp
+#*WD|112*#$month.windAv.maxtime.format($Day) #slurp
+#*WD|113*#$month.windAv.maxtime.format($Month) #slurp
+#*WD|114*#$month.windAv.maxtime.format($Year) #slurp
+#else
+#*WD|109*#0 #slurp
+#*WD|110*#- #slurp
+#*WD|111*#- #slurp
+#*WD|112*#- #slurp
+#*WD|113*#- #slurp
+#*WD|114*#- #slurp
+#end if
+#*WD|115*#0 #slurp
+#*WD|116*#- #slurp
+#*WD|117*#- #slurp
+#*WD|118*#- #slurp
+#*WD|119*#- #slurp
+#*WD|120*#- #slurp
+#*WD|121*#0 #slurp
+#*WD|122*#- #slurp
+#*WD|123*#- #slurp
+#*WD|124*#- #slurp
+#*WD|125*#- #slurp
+#*WD|126*#- #slurp
+#*WD|127*#0 #slurp
+#*WD|128*#- #slurp
+#*WD|129*#- #slurp
+#*WD|130*#- #slurp
+#*WD|131*#- #slurp
+#*WD|132*#- #slurp
+#*WD|133*#$month.windchill.min #slurp
+#*WD|134*#$month.windchill.mintime.format($Hour) #slurp
+#*WD|135*#$month.windchill.mintime.format($Minute) #slurp
+#*WD|136*#$month.windchill.mintime.format($Day) #slurp
+#*WD|137*#$month.windchill.mintime.format($Month) #slurp
+#*WD|138*#$month.windchill.mintime.format($Year) #slurp
+#*WD|139*#0 #slurp
+#*WD|140*#- #slurp
+#*WD|141*#- #slurp
+#*WD|142*#- #slurp
+#*WD|143*#- #slurp
+#*WD|144*#- #slurp
+#*WD|145*#0 #slurp
+#*WD|146*#- #slurp
+#*WD|147*#- #slurp
+#*WD|148*#- #slurp
+#*WD|149*#- #slurp
+#*WD|150*#- #slurp
+#if $month.outTempDay.has_data
+#*WD|151*#$month.outTempDay.max.degree_C #slurp
+#*WD|152*#$month.outTempDay.maxtime.format($Hour) #slurp
+#*WD|153*#$month.outTempDay.maxtime.format($Minute) #slurp
+#*WD|154*#$month.outTempDay.maxtime.format($Day) #slurp
+#*WD|155*#$month.outTempDay.maxtime.format($Month) #slurp
+#*WD|156*#$month.outTempDay.maxtime.format($Year) #slurp
+#else
+#*WD|151*#0 #slurp
+#*WD|152*#- #slurp
+#*WD|153*#- #slurp
+#*WD|154*#- #slurp
+#*WD|155*#- #slurp
+#*WD|156*#- #slurp
+#end if
+#if $month.outTempNight.has_data
+#*WD|157*#$month.outTempNight.min.degree_C #slurp
+#*WD|158*#$month.outTempNight.mintime.format($Hour) #slurp
+#*WD|159*#$month.outTempNight.mintime.format($Minute) #slurp
+#*WD|160*#$month.outTempNight.mintime.format($Day) #slurp
+#*WD|161*#$month.outTempNight.mintime.format($Month) #slurp
+#*WD|162*#$month.outTempNight.mintime.format($Year) #slurp
+#else
+#*WD|157*#0 #slurp
+#*WD|158*#- #slurp
+#*WD|159*#- #slurp
+#*WD|160*#- #slurp
+#*WD|161*#- #slurp
+#*WD|162*#- #slurp
+#end if
+#if $month.outTempDay.has_data
+#*WD|163*#$month.outTempDay.maxmin.degree_C #slurp
+#*WD|164*#$month.outTempDay.maxmintime.format($Hour) #slurp
+#*WD|165*#$month.outTempDay.maxmintime.format($Minute) #slurp
+#*WD|166*#$month.outTempDay.maxmintime.format($Day) #slurp
+#*WD|167*#$month.outTempDay.maxmintime.format($Month) #slurp
+#*WD|168*#$month.outTempDay.maxmintime.format($Year) #slurp
+#else
+#*WD|163*#0 #slurp
+#*WD|164*#- #slurp
+#*WD|165*#- #slurp
+#*WD|166*#- #slurp
+#*WD|167*#- #slurp
+#*WD|168*#- #slurp
+#end if
+#if $month.outTempNight.has_data
+#*WD|169*#$month.outTempNight.minmax.degree_C #slurp
+#*WD|170*#$month.outTempNight.minmaxtime.format($Hour) #slurp
+#*WD|171*#$month.outTempNight.minmaxtime.format($Minute) #slurp
+#*WD|172*#$month.outTempNight.minmaxtime.format($Day) #slurp
+#*WD|173*#$month.outTempNight.minmaxtime.format($Month) #slurp
+#*WD|174*#$month.outTempNight.minmaxtime.format($Year) #slurp
+#else
+#*WD|169*#0 #slurp
+#*WD|170*#- #slurp
+#*WD|171*#- #slurp
+#*WD|172*#- #slurp
+#*WD|173*#- #slurp
+#*WD|174*#- #slurp
+#end if
+#*WD|175*#$month.windchill.max #slurp
+#*WD|176*#$month.windchill.maxtime.format($Hour) #slurp
+#*WD|177*#$month.windchill.maxtime.format($Minute) #slurp
+#*WD|178*#$month.windchill.maxtime.format($Day) #slurp
+#*WD|179*#$month.windchill.maxtime.format($Month) #slurp
+#*WD|180*#$month.windchill.maxtime.format($Year) #slurp
+#*WD|181*#0 #slurp
+#*WD|182*#- #slurp
+#*WD|183*#- #slurp
+#*WD|184*#- #slurp
+#*WD|185*#- #slurp
+#*WD|186*#- #slurp
+#*WD|187*#$year.outTemp.max #slurp
+#*WD|188*#$year.outTemp.maxtime.format($Hour) #slurp
+#*WD|189*#$year.outTemp.maxtime.format($Minute) #slurp
+#*WD|190*#$year.outTemp.maxtime.format($Day) #slurp
+#*WD|191*#$year.outTemp.maxtime.format($Month) #slurp
+#*WD|192*#$year.outTemp.maxtime.format($Year) #slurp
+#*WD|193*#$year.outTemp.min #slurp
+#*WD|194*#$year.outTemp.mintime.format($Hour) #slurp
+#*WD|195*#$year.outTemp.mintime.format($Minute) #slurp
+#*WD|196*#$year.outTemp.mintime.format($Day) #slurp
+#*WD|197*#$year.outTemp.mintime.format($Month) #slurp
+#*WD|198*#$year.outTemp.mintime.format($Year) #slurp
+#*WD|199*#$year.wind.max.knot #slurp #slurp
+#*WD|200*#$year.wind.maxtime.format($Hour) #slurp
+#*WD|201*#$year.wind.maxtime.format($Minute) #slurp
+#*WD|202*#$year.wind.maxtime.format($Day) #slurp
+#*WD|203*#$year.wind.maxtime.format($Month) #slurp
+#*WD|204*#$year.wind.maxtime.format($Year) #slurp
+#*WD|205*#$year.rainRate.max #slurp #slurp
+#*WD|206*#$year.rainRate.maxtime.format($Hour) #slurp
+#*WD|207*#$year.rainRate.maxtime.format($Minute) #slurp
+#*WD|208*#$year.rainRate.maxtime.format($Day) #slurp
+#*WD|209*#$year.rainRate.maxtime.format($Month) #slurp
+#*WD|210*#$year.rainRate.maxtime.format($Year) #slurp
+#*WD|211*#$year.barometer.min #slurp
+#*WD|212*#$year.barometer.mintime.format($Hour) #slurp
+#*WD|213*#$year.barometer.mintime.format($Minute) #slurp
+#*WD|214*#$year.barometer.mintime.format($Day) #slurp
+#*WD|215*#$year.barometer.mintime.format($Month) #slurp
+#*WD|216*#$year.barometer.mintime.format($Year) #slurp
+#*WD|217*#$year.barometer.max #slurp
+#*WD|218*#$year.barometer.maxtime.format($Hour) #slurp
+#*WD|219*#$year.barometer.maxtime.format($Minute) #slurp
+#*WD|220*#$year.barometer.maxtime.format($Day) #slurp
+#*WD|221*#$year.barometer.maxtime.format($Month) #slurp
+#*WD|222*#$year.barometer.maxtime.format($Year) #slurp
+#*WD|223*#$year.rain.max #slurp
+#*WD|224*#$year.rain.maxtime.format($Hour) #slurp
+#*WD|225*#$year.rain.maxtime.format($Minute) #slurp
+#*WD|226*#$year.rain.maxtime.format($Day) #slurp
+#*WD|227*#$year.rain.maxtime.format($Month) #slurp
+#*WD|228*#$year.rain.maxtime.format($Year) #slurp
+#*WD|229*#0 #slurp
+#*WD|230*#- #slurp
+#*WD|231*#- #slurp
+#*WD|232*#- #slurp
+#*WD|233*#- #slurp
+#*WD|234*#- #slurp
+#*WD|235*#$year.wind.max #slurp
+#*WD|236*#$year.wind.maxtime.format($Hour) #slurp
+#*WD|237*#$year.wind.maxtime.format($Minute) #slurp
+#*WD|238*#$year.wind.maxtime.format($Day) #slurp
+#*WD|239*#$year.wind.maxtime.format($Month) #slurp
+#*WD|240*#$year.wind.maxtime.format($Year) #slurp
+#*WD|241*#0 #slurp
+#*WD|242*#- #slurp
+#*WD|243*#- #slurp
+#*WD|244*#- #slurp
+#*WD|245*#- #slurp
+#*WD|246*#- #slurp
+#*WD|247*#0 #slurp
+#*WD|248*#- #slurp
+#*WD|249*#- #slurp
+#*WD|250*#- #slurp
+#*WD|251*#- #slurp
+#*WD|252*#- #slurp
+#*WD|253*#0 #slurp
+#*WD|254*#- #slurp
+#*WD|255*#- #slurp
+#*WD|256*#- #slurp
+#*WD|257*#- #slurp
+#*WD|258*#- #slurp
+#*WD|259*#$year.windchill.min #slurp
+#*WD|260*#$year.windchill.mintime.format($Hour) #slurp
+#*WD|261*#$year.windchill.mintime.format($Minute) #slurp
+#*WD|262*#$year.windchill.mintime.format($Day) #slurp
+#*WD|263*#$year.windchill.mintime.format($Month) #slurp
+#*WD|264*#$year.windchill.mintime.format($Year) #slurp
+#*WD|265*#$year.wind.vecdir #slurp
+#*WD|266*#$year.wind.maxtime.format($Hour) #slurp
+#*WD|267*#$year.wind.maxtime.format($Minute) #slurp
+#*WD|268*#$year.wind.maxtime.format($Day) #slurp
+#*WD|269*#$year.wind.maxtime.format($Month) #slurp
+#*WD|270*#$year.wind.maxtime.format($Year) #slurp
+#if $varExists('day.windAv.count')
+#*WD|271*#$year.windAv.vecdir #slurp
+#*WD|272*#$year.windAv.maxtime.format($Hour) #slurp
+#*WD|273*#$year.windAv.maxtime.format($Minute) #slurp
+#*WD|274*#$year.windAv.maxtime.format($Day) #slurp
+#*WD|275*#$year.windAv.maxtime.format($Month) #slurp
+#*WD|276*#$year.windAv.maxtime.format($Year) #slurp
+#else
+#*WD|271*#0 #slurp
+#*WD|272*#- #slurp
+#*WD|273*#- #slurp
+#*WD|274*#- #slurp
+#*WD|275*#- #slurp
+#*WD|276*#- #slurp
+#end if
+#if $year.outTempDay.has_data
+#*WD|277*#$year.outTempDay.max.degree_C #slurp
+#*WD|278*#$year.outTempDay.maxtime.format($Hour) #slurp
+#*WD|279*#$year.outTempDay.maxtime.format($Minute) #slurp
+#*WD|280*#$year.outTempDay.maxtime.format($Day) #slurp
+#*WD|281*#$year.outTempDay.maxtime.format($Month) #slurp
+#*WD|282*#$year.outTempDay.maxtime.format($Year) #slurp
+#else
+#*WD|277*#0 #slurp
+#*WD|278*#- #slurp
+#*WD|279*#- #slurp
+#*WD|280*#- #slurp
+#*WD|281*#- #slurp
+#*WD|282*#- #slurp
+#end if
+#if $year.outTempNight.has_data
+#*WD|283*#$year.outTempNight.min.degree_C #slurp
+#*WD|284*#$year.outTempNight.mintime.format($Hour) #slurp
+#*WD|285*#$year.outTempNight.mintime.format($Minute) #slurp
+#*WD|286*#$year.outTempNight.mintime.format($Day) #slurp
+#*WD|287*#$year.outTempNight.mintime.format($Month) #slurp
+#*WD|288*#$year.outTempNight.mintime.format($Year) #slurp
+#else
+#*WD|283*#0 #slurp
+#*WD|284*#- #slurp
+#*WD|285*#- #slurp
+#*WD|286*#- #slurp
+#*WD|287*#- #slurp
+#*WD|288*#- #slurp
+#end if
+#if $year.outTempDay.has_data
+#*WD|289*#$year.outTempDay.minmax.degree_C #slurp
+#*WD|290*#$year.outTempDay.minmaxtime.format($Hour) #slurp
+#*WD|291*#$year.outTempDay.minmaxtime.format($Minute) #slurp
+#*WD|292*#$year.outTempDay.minmaxtime.format($Day) #slurp
+#*WD|293*#$year.outTempDay.minmaxtime.format($Month) #slurp
+#*WD|294*#$year.outTempDay.minmaxtime.format($Year) #slurp
+#else
+#*WD|289*#0 #slurp
+#*WD|290*#- #slurp
+#*WD|291*#- #slurp
+#*WD|292*#- #slurp
+#*WD|293*#- #slurp
+#*WD|294*#- #slurp
+#end if
+#if $year.outTempNight.has_data
+#*WD|295*#$year.outTempNight.maxmin.degree_C #slurp
+#*WD|296*#$year.outTempNight.maxmintime.format($Hour) #slurp
+#*WD|297*#$year.outTempNight.maxmintime.format($Minute) #slurp
+#*WD|298*#$year.outTempNight.maxmintime.format($Day) #slurp
+#*WD|299*#$year.outTempNight.maxmintime.format($Month) #slurp
+#*WD|300*#$year.outTempNight.maxmintime.format($Year) #slurp
+#else
+#*WD|295*#0 #slurp
+#*WD|296*#- #slurp
+#*WD|297*#- #slurp
+#*WD|298*#- #slurp
+#*WD|299*#- #slurp
+#*WD|300*#- #slurp
+#end if
+#*WD|301*#$year.windchill.max.degree_C #slurp
+#*WD|302*#$year.windchill.maxtime.format($Hour) #slurp
+#*WD|303*#$year.windchill.maxtime.format($Minute) #slurp
+#*WD|304*#$year.windchill.maxtime.format($Day) #slurp
+#*WD|305*#$year.windchill.maxtime.format($Month) #slurp
+#*WD|306*#$year.windchill.maxtime.format($Year) #slurp
+#*WD|307*#0 #slurp
+#*WD|308*#- #slurp
+#*WD|309*#- #slurp
+#*WD|310*#- #slurp
+#*WD|311*#- #slurp
+#*WD|312*#- #slurp
+#*WD|313*#$alltime.outTemp.max.degree_C #slurp
+#*WD|314*#$alltime.outTemp.maxtime.format($Hour) #slurp
+#*WD|315*#$alltime.outTemp.maxtime.format($Minute) #slurp
+#*WD|316*#$alltime.outTemp.maxtime.format($Day) #slurp
+#*WD|317*#$alltime.outTemp.maxtime.format($Month) #slurp
+#*WD|318*#$alltime.outTemp.maxtime.format($Year) #slurp
+#*WD|319*#$alltime.outTemp.min.degree_C #slurp
+#*WD|320*#$alltime.outTemp.mintime.format($Hour) #slurp
+#*WD|321*#$alltime.outTemp.mintime.format($Minute) #slurp
+#*WD|322*#$alltime.outTemp.mintime.format($Day) #slurp
+#*WD|323*#$alltime.outTemp.mintime.format($Month) #slurp
+#*WD|324*#$alltime.outTemp.mintime.format($Year) #slurp
+#*WD|325*#$alltime.wind.max.knot #slurp
+#*WD|326*#$alltime.wind.maxtime.format($Hour) #slurp
+#*WD|327*#$alltime.wind.maxtime.format($Minute) #slurp
+#*WD|328*#$alltime.wind.maxtime.format($Day) #slurp
+#*WD|329*#$alltime.wind.maxtime.format($Month) #slurp
+#*WD|330*#$alltime.wind.maxtime.format($Year) #slurp
+#*WD|331*#$alltime.rainRate.max #slurp
+#*WD|332*#$alltime.rainRate.maxtime.format($Hour) #slurp
+#*WD|333*#$alltime.rainRate.maxtime.format($Minute) #slurp
+#*WD|334*#$alltime.rainRate.maxtime.format($Day) #slurp
+#*WD|335*#$alltime.rainRate.maxtime.format($Month) #slurp
+#*WD|336*#$alltime.rainRate.maxtime.format($Year) #slurp
+#*WD|337*#$alltime.barometer.min #slurp
+#*WD|338*#$alltime.barometer.mintime.format($Hour) #slurp
+#*WD|339*#$alltime.barometer.mintime.format($Minute) #slurp
+#*WD|340*#$alltime.barometer.mintime.format($Day) #slurp
+#*WD|341*#$alltime.barometer.mintime.format($Month) #slurp
+#*WD|342*#$alltime.barometer.mintime.format($Year) #slurp
+#*WD|343*#$alltime.barometer.max #slurp
+#*WD|344*#$alltime.barometer.maxtime.format($Hour) #slurp
+#*WD|345*#$alltime.barometer.maxtime.format($Minute) #slurp
+#*WD|346*#$alltime.barometer.maxtime.format($Day) #slurp
+#*WD|347*#$alltime.barometer.maxtime.format($Month) #slurp
+#*WD|348*#$alltime.barometer.maxtime.format($Year) #slurp
+#*WD|349*#$alltime.rain.max #slurp
+#*WD|350*#$alltime.rain.maxtime.format($Hour) #slurp
+#*WD|351*#$alltime.rain.maxtime.format($Minute) #slurp
+#*WD|352*#$alltime.rain.maxtime.format($Day) #slurp
+#*WD|353*#$alltime.rain.maxtime.format($Month) #slurp
+#*WD|354*#$alltime.rain.maxtime.format($Year) #slurp
+#*WD|355*#0 #slurp
+#*WD|356*#- #slurp
+#*WD|357*#- #slurp
+#*WD|358*#- #slurp
+#*WD|359*#- #slurp
+#*WD|360*#- #slurp
+#*WD|361*#0 #slurp
+#*WD|362*#- #slurp
+#*WD|363*#- #slurp
+#*WD|364*#- #slurp
+#*WD|365*#- #slurp
+#*WD|366*#- #slurp
+#*WD|367*#0 #slurp
+#*WD|368*#- #slurp
+#*WD|369*#- #slurp
+#*WD|370*#- #slurp
+#*WD|371*#- #slurp
+#*WD|372*#- #slurp
+#*WD|373*#0 #slurp
+#*WD|374*#- #slurp
+#*WD|375*#- #slurp
+#*WD|376*#- #slurp
+#*WD|377*#- #slurp
+#*WD|378*#- #slurp
+#*WD|379*#0 #slurp
+#*WD|380*#- #slurp
+#*WD|381*#- #slurp
+#*WD|382*#- #slurp
+#*WD|383*#- #slurp
+#*WD|384*#- #slurp
+#*WD|385*#$alltime.windchill.min.degree_C #slurp
+#*WD|386*#$alltime.windchill.mintime.format($Hour) #slurp
+#*WD|387*#$alltime.windchill.mintime.format($Minute) #slurp
+#*WD|388*#$alltime.windchill.mintime.format($Day) #slurp
+#*WD|389*#$alltime.windchill.mintime.format($Month) #slurp
+#*WD|390*#$alltime.windchill.mintime.format($Year) #slurp
+#*WD|391*#$alltime.wind.max.knot #slurp
+#*WD|392*#$alltime.wind.maxtime.format($Hour) #slurp
+#*WD|393*#$alltime.wind.maxtime.format($Minute) #slurp
+#*WD|394*#$alltime.wind.maxtime.format($Day) #slurp
+#*WD|395*#$alltime.wind.maxtime.format($Month) #slurp
+#*WD|396*#$alltime.wind.maxtime.format($Year) #slurp
+#if $varExists('day.windAv.count')
+#*WD|397*#$alltime.windAv.max.knot #slurp
+#*WD|398*#$alltime.windAv.maxtime.format($Hour) #slurp
+#*WD|399*#$alltime.windAv.maxtime.format($Minute) #slurp
+#*WD|400*#$alltime.windAv.maxtime.format($Day) #slurp
+#*WD|401*#$alltime.windAv.maxtime.format($Month) #slurp
+#*WD|402*#$alltime.windAv.maxtime.format($Year) #slurp
+#else
+#*WD|397*#0 #slurp
+#*WD|398*#- #slurp
+#*WD|399*#- #slurp
+#*WD|400*#- #slurp
+#*WD|401*#- #slurp
+#*WD|402*#- #slurp
+#end if
+#if $alltime.outTempDay.has_data
+#*WD|403*#$alltime.outTempDay.max.degree_C #slurp
+#*WD|404*#$alltime.outTempDay.maxtime.format($Hour) #slurp
+#*WD|405*#$alltime.outTempDay.maxtime.format($Minute) #slurp
+#*WD|406*#$alltime.outTempDay.maxtime.format($Day) #slurp
+#*WD|407*#$alltime.outTempDay.maxtime.format($Month) #slurp
+#*WD|408*#$alltime.outTempDay.maxtime.format($Year) #slurp 
+#else
+#*WD|403*#0 #slurp
+#*WD|404*#- #slurp
+#*WD|405*#- #slurp
+#*WD|406*#- #slurp
+#*WD|407*#- #slurp
+#*WD|408*#- #slurp 
+#end if
+#if $alltime.outTempNight.has_data
+#*WD|409*#$alltime.outTempNight.min.degree_C #slurp
+#*WD|410*#$alltime.outTempNight.mintime.format($Hour) #slurp
+#*WD|411*#$alltime.outTempNight.mintime.format($Minute) #slurp
+#*WD|412*#$alltime.outTempNight.mintime.format($Day) #slurp
+#*WD|413*#$alltime.outTempNight.mintime.format($Month) #slurp
+#*WD|414*#$alltime.outTempNight.mintime.format($Year) #slurp
+#else
+#*WD|409*#0 #slurp
+#*WD|410*#- #slurp
+#*WD|411*#- #slurp
+#*WD|412*#- #slurp
+#*WD|413*#- #slurp
+#*WD|414*#- #slurp 
+#end if
+#if $alltime.outTempDay.has_data
+#*WD|415*#$alltime.outTempDay.minmax.degree_C #slurp
+#*WD|416*#$alltime.outTempDay.minmaxtime.format($Hour) #slurp
+#*WD|417*#$alltime.outTempDay.minmaxtime.format($Minute) #slurp
+#*WD|418*#$alltime.outTempDay.minmaxtime.format($Day) #slurp
+#*WD|419*#$alltime.outTempDay.minmaxtime.format($Month) #slurp
+#*WD|420*#$alltime.outTempDay.minmaxtime.format($Year) #slurp 
+#else
+#*WD|415*#0 #slurp
+#*WD|416*#- #slurp
+#*WD|417*#- #slurp
+#*WD|418*#- #slurp
+#*WD|419*#- #slurp
+#*WD|420*#- #slurp 
+#end if
+#if $alltime.outTempNight.has_data
+#*WD|421*#$alltime.outTempNight.maxmin.degree_C #slurp
+#*WD|422*#$alltime.outTempNight.maxmintime.format($Hour) #slurp
+#*WD|423*#$alltime.outTempNight.maxmintime.format($Minute) #slurp
+#*WD|424*#$alltime.outTempNight.maxmintime.format($Day) #slurp
+#*WD|425*#$alltime.outTempNight.maxmintime.format($Month) #slurp
+#*WD|426*#$alltime.outTempNight.maxmintime.format($Year) #slurp
+#else
+#*WD|421*#0 #slurp
+#*WD|422*#- #slurp
+#*WD|423*#- #slurp
+#*WD|424*#- #slurp
+#*WD|425*#- #slurp
+#*WD|426*#- #slurp 
+#end if
+#*WD|427*#0 #slurp
+#*WD|428*#- #slurp
+#*WD|429*#- #slurp
+#*WD|430*#- #slurp
+#*WD|431*#- #slurp
+#*WD|432*#- #slurp
+#*WD|433*#0 #slurp
+#*WD|434*#- #slurp
+#*WD|435*#- #slurp
+#*WD|436*#- #slurp
+#*WD|437*#- #slurp
+#*WD|438*#- #slurp
+#*WD|439*##*barometer Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$barometerHourArray[$i].hPa #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|459*##*'timestamp' Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$dateTimeHourArray[$i].format($Time) #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|479*#0 #slurp
+#*WD|480*#0 #slurp
+#*WD|481*#0 #slurp
+#*WD|482*#0 #slurp
+#*WD|483*#0 #slurp
+#*WD|484*#$rainMon #slurp
+#*WD|485*#$rainTue #slurp
+#*WD|486*#$rainWed #slurp
+#*WD|487*#$rainThu #slurp
+#*WD|488*#$rainFri #slurp
+#*WD|489*#$rainSat #slurp
+#*WD|490*#$rainSun #slurp
+#*WD|491*##*Solar Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$radiationHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|511*##*UV reading Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$UVHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|531*#weewx #slurp
+#*WD|532*#$yesterday.rain.sum #slurp
+#*WD|533*#0 #slurp
+#*WD|534*#$yesterday.rain.sum #slurp
+#*WD|535*#$station.version #slurp
+#*WD|536*##*Wiund Dir Hour 01 to 20. Hour 01=24 hours ago*##slurp
+#for $i in range (20):
+#try
+$windDirHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#if $almanac.hasExtras
+#*WD|556*#$almanac.sun.rise #slurp
+#*WD|557*#$almanac.sun.set #slurp
+#*WD|558*#$almanac.moon.rise #slurp
+#*WD|559*#$almanac.moon.set #slurp
+#*WD|560*#$almanac.moon_fullness #slurp
+#*WD|561*#$moonDays #slurp
+#else
+#*WD|556*#$almanac.sunrise #slurp
+#*WD|557*#$almanac.sunset #slurp
+#*WD|558*#NA #slurp
+#*WD|559*#NA #slurp
+#*WD|560*#$almanac.moon_fullness #slurp
+#*WD|561*#NA #slurp
+#end if
+#*WD|562*##*Windspeed Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$windSpeedHourArray[$i].knot #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|566*##*outTemp Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$outTempHourArray[$i].degree_C #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|570*##*rain Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$rainHourArray[$i].mm #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|574*##*barometer Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$barometerHourArray[$i].hPa #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|578*##*'timestamp' Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$dateTimeHourArray[$i].format($Time) #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|582*##*Solar Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$radiationHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|586*##*UV reading Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$UVHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|590*##*Win Dir Hour 21 to 24. Hour 24=most recent*##slurp
+#for $i in range (20,24):
+#try
+$windDirHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|594*##*Extra Sensor Low and Highs (Not Supported)*##slurp
+#for $i in range(8)
+-100 #slurp
+100 #slurp
+#end for
+#*WD|610*#$dayornight #slurp
+#*WD|611*##*outHumidity Hour 01 to 24. Hour 01=24 hours ago, Hour 24=most recent*##slurp
+#for $i in range (24):
+#try
+$outHumidityHourArray[$i] #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|635*#- #slurp
+#*WD|636*##*inTemp Hour 01 to 24. Hour 01=24 hours ago, Hour 24=most recent*##slurp
+#for $i in range (24):
+#try
+$inTempHourArray[$i].degree_C #slurp
+#except
+0 #slurp
+#end try
+#end for
+#*WD|660*#$month.radiation.max #slurp
+#*WD|661*#$month.radiation.maxtime.format($Hour) #slurp
+#*WD|662*#$month.radiation.maxtime.format($Minute) #slurp
+#*WD|663*#$month.radiation.maxtime.format($Day) #slurp
+#*WD|664*#$month.radiation.maxtime.format($Month) #slurp
+#*WD|665*#$month.radiation.maxtime.format($Year) #slurp
+#*WD|666*#$month.UV.max #slurp
+#*WD|667*#$month.UV.maxtime.format($Hour) #slurp
+#*WD|668*#$month.UV.maxtime.format($Minute) #slurp
+#*WD|669*#$month.UV.maxtime.format($Day) #slurp
+#*WD|670*#$month.UV.maxtime.format($Month) #slurp
+#*WD|671*#$month.UV.maxtime.format($Year) #slurp
+#*WD|672*#$year.radiation.max #slurp
+#*WD|673*#$year.radiation.maxtime.format($Hour) #slurp
+#*WD|674*#$year.radiation.maxtime.format($Minute) #slurp
+#*WD|675*#$year.radiation.maxtime.format($Day) #slurp
+#*WD|676*#$year.radiation.maxtime.format($Month) #slurp
+#*WD|677*#$year.radiation.maxtime.format($Year) #slurp
+#*WD|678*#$year.UV.max #slurp
+#*WD|679*#$year.UV.maxtime.format($Hour) #slurp
+#*WD|680*#$year.UV.maxtime.format($Minute) #slurp
+#*WD|681*#$year.UV.maxtime.format($Day) #slurp
+#*WD|682*#$year.UV.maxtime.format($Month) #slurp
+#*WD|683*#$year.UV.maxtime.format($Year) #slurp
+#*WD|684*#$alltime.radiation.max #slurp
+#*WD|685*#$alltime.radiation.maxtime.format($Hour) #slurp
+#*WD|686*#$alltime.radiation.maxtime.format($Minute) #slurp
+#*WD|687*#$alltime.radiation.maxtime.format($Day) #slurp
+#*WD|688*#$alltime.radiation.maxtime.format($Month) #slurp
+#*WD|689*#$alltime.radiation.maxtime.format($Year) #slurp
+#*WD|690*#$alltime.UV.max #slurp
+#*WD|691*#$alltime.UV.maxtime.format($Hour) #slurp
+#*WD|692*#$alltime.UV.maxtime.format($Minute) #slurp
+#*WD|693*#$alltime.UV.maxtime.format($Day) #slurp
+#*WD|694*#$alltime.UV.maxtime.format($Month) #slurp
+#*WD|695*#$alltime.UV.maxtime.format($Year) #slurp
+#*WD|696*#$time.strftime("%H:%M:%S", $dayLength) #slurp
+#*WD|697*#0 #slurp
+#*WD|698*#$current.dateTime.format("%H") #slurp
+#*WD|699*#$current.dateTime.format("%M") #slurp
+#*WD|700*#$current.dateTime.format("%d") #slurp
+#*WD|701*#$Extras.Solar_Inst_Flag #slurp
+#*WD|702*#$Extras.UV_Inst_Flag #slurp
+#*WD|703*#$Extras.Soil_Temp_Flag #slurp
+#*WD|704*##*NexStorm Not Supported*##slurp
+#for $i in range (24):
+0 #slurp
+#end for
+#*WD|728*#- #slurp
+#*WD|729*#$month.dewpoint.max #slurp
+#*WD|730*#$month.dewpoint.maxtime.format($Hour) #slurp
+#*WD|731*#$month.dewpoint.maxtime.format($Minute) #slurp
+#*WD|732*#$month.dewpoint.maxtime.format($Day) #slurp
+#*WD|733*#$month.dewpoint.maxtime.format($Month) #slurp
+#*WD|734*#$month.dewpoint.maxtime.format($Year) #slurp
+#*WD|735*#$month.dewpoint.min #slurp
+#*WD|736*#$month.dewpoint.mintime.format($Hour) #slurp
+#*WD|737*#$month.dewpoint.mintime.format($Minute) #slurp
+#*WD|738*#$month.dewpoint.mintime.format($Day) #slurp
+#*WD|739*#$month.dewpoint.mintime.format($Month) #slurp
+#*WD|740*#$month.dewpoint.mintime.format($Year) #slurp
+#*WD|741*#$year.dewpoint.max #slurp
+#*WD|742*#$year.dewpoint.maxtime.format($Hour) #slurp
+#*WD|743*#$year.dewpoint.maxtime.format($Minute) #slurp
+#*WD|744*#$year.dewpoint.maxtime.format($Day) #slurp
+#*WD|745*#$year.dewpoint.maxtime.format($Month) #slurp
+#*WD|746*#$year.dewpoint.maxtime.format($Year) #slurp
+#*WD|747*#$year.dewpoint.min #slurp
+#*WD|748*#$year.dewpoint.mintime.format($Hour) #slurp
+#*WD|749*#$year.dewpoint.mintime.format($Minute) #slurp
+#*WD|750*#$year.dewpoint.mintime.format($Day) #slurp
+#*WD|751*#$year.dewpoint.mintime.format($Month) #slurp
+#*WD|752*#$year.dewpoint.mintime.format($Year) #slurp
+#*WD|753*#$alltime.dewpoint.max #slurp
+#*WD|754*#$alltime.dewpoint.maxtime.format($Hour) #slurp
+#*WD|755*#$alltime.dewpoint.maxtime.format($Minute) #slurp
+#*WD|756*#$alltime.dewpoint.maxtime.format($Day) #slurp
+#*WD|757*#$alltime.dewpoint.maxtime.format($Month) #slurp
+#*WD|758*#$alltime.dewpoint.maxtime.format($Year) #slurp
+#*WD|759*#$alltime.dewpoint.min #slurp
+#*WD|760*#$alltime.dewpoint.mintime.format($Hour) #slurp
+#*WD|761*#$alltime.dewpoint.mintime.format($Minute) #slurp
+#*WD|762*#$alltime.dewpoint.mintime.format($Day) #slurp
+#*WD|763*#$alltime.dewpoint.mintime.format($Month) #slurp
+#*WD|764*#$alltime.dewpoint.mintime.format($Year) #slurp
+#*WD|765*#- #slurp
+#*WD|766*#- #slurp
+#*WD|767*#!!EOR!! #slurp
