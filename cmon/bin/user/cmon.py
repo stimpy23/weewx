@@ -1,4 +1,4 @@
-# $Id: PI_TEST$
+# $Id: cmon.py 802 2014-01-25 14:29:04Z mwall $
 # Copyright 2013 Matthew Wall
 """weewx module that records cpu, memory, disk, and network usage.
 
@@ -34,6 +34,7 @@ Add the following to weewx.conf:
 from __future__ import with_statement
 import os
 import platform
+import re
 import syslog
 import time
 from subprocess import Popen, PIPE
@@ -92,28 +93,6 @@ def _readproc_dict(filename):
                 info[n.strip()] = v.strip()
     return info
 
-IGNORED_MOUNTS = [
-    '/lib/init/rw',
-    '/proc',
-    '/sys',
-    '/dev',
-    '/afs',
-    ]
-
-CPU_KEYS = ['user','nice','system','idle','iowait','irq','softirq']
-
-# bytes received
-# packets received
-# packets dropped
-# fifo buffer errors
-# packet framing errors
-# compressed packets
-# multicast frames
-NET_KEYS = [
-    'rbytes','rpackets','rerrs','rdrop','rfifo','rframe','rcomp','rmulti',
-    'tbytes','tpackets','terrs','tdrop','tfifo','tframe','tcomp','tmulti'
-    ]
-
 defaultSchema = [
     ('dateTime', 'INTEGER NOT NULL PRIMARY KEY'),
     ('usUnits', 'INTEGER'),
@@ -137,7 +116,11 @@ defaultSchema = [
     ('proc_total','INTEGER'),
 
 # measure cpu temperature (not all platforms support this)
-    ('cpu_temp','REAL'),
+    ('cpu_temp','REAL'),  # degree C
+    ('cpu_temp1','REAL'), # degree C
+    ('cpu_temp2','REAL'), # degree C
+    ('cpu_temp3','REAL'), # degree C
+    ('cpu_temp4','REAL'), # degree C
 
 # the default interface on most linux systems is eth0
     ('net_eth0_rbytes','INTEGER'),
@@ -169,6 +152,39 @@ defaultSchema = [
 #    ('disk_var_weewx_total','INTEGER'),
 #    ('disk_var_weewx_free','INTEGER'),
 #    ('disk_var_weewx_used','INTEGER'),
+
+# measure the ups parameters if we can
+    ('ups_temp','REAL'),    # degree C
+    ('ups_load','REAL'),    # percent
+    ('ups_charge','REAL'),  # percent
+    ('ups_voltage','REAL'), # volt
+    ('ups_time','REAL'),    # seconds
+    ]
+
+# this exension will scan for all mounted file system.  these are the
+# filesystems we ignore.
+IGNORED_MOUNTS = [
+    '/lib/init/rw',
+    '/proc',
+    '/sys',
+    '/dev',
+    '/afs',
+    '/mit',
+    '/run',
+    ]
+
+CPU_KEYS = ['user','nice','system','idle','iowait','irq','softirq']
+
+# bytes received
+# packets received
+# packets dropped
+# fifo buffer errors
+# packet framing errors
+# compressed packets
+# multicast frames
+NET_KEYS = [
+    'rbytes','rpackets','rerrs','rdrop','rfifo','rframe','rcomp','rmulti',
+    'tbytes','tpackets','terrs','tdrop','tfifo','tframe','tcomp','tmulti'
     ]
 
 class ComputerMonitor(StdService):
@@ -178,6 +194,11 @@ class ComputerMonitor(StdService):
         super(ComputerMonitor, self).__init__(engine, config_dict)
 
         d = config_dict.get('ComputerMonitor', {})
+        self.ignored_mounts = d.get('ignored_mounts', IGNORED_MOUNTS)
+        self.hardware = d.get('hardware', [None])
+        if not isinstance(self.hardware, list):
+            self.hardware = [self.hardware]
+        self.max_age = get_int(d, 'max_age', 2592000)
 
         # get the database parameters we need to function
         self.database = d['database']
@@ -197,7 +218,6 @@ class ComputerMonitor(StdService):
 
         # see what we are running on
         self.system = platform.system()
-        self.hardware = None # set to 'rpi' for raspberry pi
 
         # provide info about the system on which we are running
         if self.system == 'Linux':
@@ -205,7 +225,6 @@ class ComputerMonitor(StdService):
             for key in cpuinfo:
                 loginf('cpuinfo: %s: %s' % (key, cpuinfo[key]))
 
-        self.max_age = get_int(d, 'max_age', 2592000)
         self.last_cpu = {}
         self.last_net = {}
         self.bind(weewx.NEW_ARCHIVE_RECORD, self.newArchiveRecordCallback)
@@ -215,8 +234,12 @@ class ComputerMonitor(StdService):
 
     def newArchiveRecordCallback(self, event):
         """save data to database then prune old records as needed"""
-        self.save_data(self.get_data())
         now = int(time.time())
+        delta = now - event.record['dateTime']
+        if delta > event.record['interval'] * 60:
+            logdbg("Skipping record: time difference %s too big" % delta)
+            return
+        self.save_data(self.get_data())
         if self.max_age is not None:
             self.prune_data(now - self.max_age)
 
@@ -237,7 +260,7 @@ class ComputerMonitor(StdService):
     def get_data(self):
         record = {}
         record['dateTime'] = int(time.time()+0.5)  # required by weedb
-        record['usUnits'] = weewx.US               # required by weedb
+        record['usUnits'] = weewx.METRIC           # required by weedb
         if self.system == 'Darwin':
             record.update(self._get_macosx_info())
         elif self.system == 'BSD':
@@ -246,8 +269,10 @@ class ComputerMonitor(StdService):
             record.update(self._get_linux_info())
         else:
             logerr('unsupported system %s' % self.system)
-        if self.hardware == 'rpi':
+        if 'rpi' in self.hardware:
             record.update(self._get_rpi_info())
+        if 'apcups' in self.hardware:
+            record.update(self._get_apcups_info())
         return record
 
     def _get_bsd_info(self):
@@ -261,6 +286,8 @@ class ComputerMonitor(StdService):
     # this should work on any linux running kernel 2.2 or later
     def _get_linux_info(self):
         record = {}
+
+        # read memory status
         meminfo = _readproc_dict('/proc/meminfo')
         record['mem_total'] = int(meminfo['MemTotal'].split()[0]) # kB
         record['mem_free'] = int(meminfo['MemFree'].split()[0]) # kB
@@ -269,6 +296,7 @@ class ComputerMonitor(StdService):
         record['swap_free'] = int(meminfo['SwapFree'].split()[0]) # kB
         record['swap_used'] = record['swap_total'] - record['swap_free']
 
+        # get cpu usage
         cpuinfo = _readproc_lines('/proc/stat')
         values = cpuinfo['cpu'].split()[0:7]
         for i,key in enumerate(CPU_KEYS):
@@ -276,6 +304,7 @@ class ComputerMonitor(StdService):
                 record['cpu_'+key] = int(values[i]) - self.last_cpu[key]
             self.last_cpu[key] = int(values[i])
 
+        # get network usage
         netinfo = _readproc_dict('/proc/net/dev')
         for iface in netinfo:
             values = netinfo[iface].split()
@@ -289,6 +318,7 @@ class ComputerMonitor(StdService):
 #        uptimestr = _readproc_line('/proc/uptime')
 #        (uptime,idletime) = uptimestr.split()
 
+        # get load and process information
         loadstr = _readproc_line('/proc/loadavg')
         (load1,load5,load15,nproc) = loadstr.split()[0:4]
         record['load1'] = float(load1)
@@ -299,6 +329,19 @@ class ComputerMonitor(StdService):
         record['proc_active'] = int(num_proc)
         record['proc_total'] = int(tot_proc)
 
+        # read cpu temperature
+        tdir = '/sys/class/hwmon/hwmon0/device'
+        if os.path.exists(tdir):
+            for f in os.listdir(tdir):
+                if f.endswith('_input'):
+                    s = _readproc_line(os.path.join(tdir,f))
+                    if len(s):
+                        n = f.replace('_input','')
+                        tC = int(s) / 1000 # degree C
+                        tF = 32.0 + tC * 9.0 / 5.0
+                        record['cpu_' + n] = tC
+
+        # get stats on mounted filesystems
         disks = []
         mntlines = _readproc_lines('/proc/mounts')
         for mnt in mntlines:
@@ -306,7 +349,7 @@ class ComputerMonitor(StdService):
             ignore = False
             if mnt.find(':') >= 0:
                 ignore = True
-            for m in IGNORED_MOUNTS:
+            for m in self.ignored_mounts:
                 if mntpt.startswith(m):
                     ignore = True
                     break
@@ -326,6 +369,39 @@ class ComputerMonitor(StdService):
 
         return record
 
+    DIGITS = re.compile('[\d.]+')
+
+    def _get_apcups_info(self):
+        record = {}
+        try:
+            cmd = '/sbin/apcaccess'
+            p = Popen(cmd, shell=True, stdout=PIPE)
+            o = p.communicate()[0]
+            for line in o.split('\n'):
+                if line.startswith('ITEMP'):
+                    m = self.DIGITS.search(line)
+                    if m:
+                        record['ups_temp'] = float(m.group())
+                elif line.startswith('LOADPCT'):
+                    m = self.DIGITS.search(line)
+                    if m:
+                        record['ups_load'] = float(m.group())
+                elif line.startswith('BCHARGE'):
+                    m = self.DIGITS.search(line)
+                    if m:
+                        record['ups_charge'] = float(m.group())
+                elif line.startswith('OUTPUTV'):
+                    m = self.DIGITS.search(line)
+                    if m:
+                        record['ups_voltage'] = float(m.group())
+                elif line.startswith('TIMELEFT'):
+                    m = self.DIGITS.search(line)
+                    if m:
+                        record['ups_time'] = float(m.group())
+        except (ValueError, IOError, KeyError), e:
+            logerr('apcups_info failed: %s' % e)
+        return record
+
     def _get_rpi_info(self):
         record = {}
         # get cpu temp on raspberry pi
@@ -334,8 +410,8 @@ class ComputerMonitor(StdService):
             p = Popen(cmd, shell=True, stdout=PIPE)
             o = p.communicate()[0]
             record['cpu_temp'] = float(o.replace("'C\n", '').partition('=')[2])
-        except (ValueError, IOError, KeyError):
-            record['cpu_temp'] = None
+        except (ValueError, IOError, KeyError), e:
+            logerr('rpi_info failed: %s' % e)
         return record
 
 
@@ -345,7 +421,6 @@ class ComputerMonitor(StdService):
 # PYTHONPATH=bin python bin/user/cmon.py
 #
 if __name__=="__main__":
-    import time
     from weewx.wxengine import StdEngine
     config = {}
     config['Station'] = {}
@@ -368,7 +443,6 @@ if __name__=="__main__":
     config['Engines']['WxEngine']['service_list'] = 'user.cmon.ComputerMonitor'
     engine = StdEngine(config)
     svc = ComputerMonitor(engine, config)
-    event = weewx.Event(weewx.NEW_ARCHIVE_RECORD)
     record = svc.get_data()
     print record
 

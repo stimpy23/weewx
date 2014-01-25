@@ -1,5 +1,6 @@
-# installer for the computer monitor extension
-# $Id$
+# $Id: install.py 796 2014-01-24 17:21:49Z mwall $
+# installer for cmon
+# Copyright 2014 Matthew Wall
 
 from setup import Installer
 
@@ -8,24 +9,30 @@ def loader():
 
 class ComputerMonitorInstaller(Installer):
     def __init__(self):
-        super(Installer, self).__init__(
-            version="0.3",
+        super(ComputerMonitorInstaller, self).__init__(
+            version="0.1",
             name='cmon',
-            description='An extension to monitor computer health.',
+            description='Collect and display computer health indicators.',
             author="Matthew Wall",
             author_email="mwall@users.sourceforge.net",
+            process_services='user.cmon.ComputerMonitor',
             config={
                 'ComputerMonitor': {
                     'database': 'computer_sqlite',
-                    'max_age': 2592000 },
+                    'max_age': '2592000'},
                 'Databases': {
-                    'computer_sqlite' : {
-                        'root': '%(WEEWX_ROOT)s',
-                        'database': 'archive/computer.sdb',
-                        'driver': 'weedb.sqlite' }},
-                'Engines': {
-                    'WxEngine': {
-                        'service_list': 'user.cmon.ComputerMonitor' }}},
-            data_files=[('bin/user',
-                         ['bin/user/cmon.py'])]
+                    'computer_sqlite': {
+                        'root': '%(SQLITE_ROOT)s',
+                        'database': 'computer.sdb',
+                        'driver': 'weedb.sqlite'}},
+                'StdReport': {
+                    'cmon': {
+                        'skin':'cmon',
+                        'HTML_ROOT':'cmon' }}},
+            files=[('bin/user',
+                    ['bin/user/cmon.py']),
+                   ('skins/cmon',
+                    ['skins/cmon/skin.conf',
+                     'skins/cmon/index.html.tmpl']),
+                   ]
             )
