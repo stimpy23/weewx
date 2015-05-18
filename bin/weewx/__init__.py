@@ -80,8 +80,8 @@ class PRE_LOOP(object):
 class NEW_LOOP_PACKET(object):
     """Event issued when a new LOOP packet is available. The event contains attribute 'packet',
     which is the new LOOP packet."""
-class NEW_CACHE_PACKET(object):
-    """Event issued when a new cached LOOP packet is available."""
+class UPDATED_ACCUMULATOR(object):
+    """Event issued when the record accumulators have been updated by a LOOP packet."""
 class CHECK_LOOP(object):
     """Event issued in the main loop, right after a new LOOP packet has been processed. Generally,
     it is used to throw an exception, breaking the main loop, so the console can be used

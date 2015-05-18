@@ -446,6 +446,13 @@ class StdWunderground(StdRESTful):
     # The URLs used by the WU:
     rapidfire_url = "http://rtupdate.wunderground.com/weatherstation/updateweatherstation.php"
     archive_url   = "http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php"
+    default_stale_dict = {'barometer'   : 60,
+                          'outTemp'     : 60,
+                          'outHumidity' : 60,
+                          'windSpeed'   : 60,
+                          'windDir'     : 60,
+                          'windGust'    : 60,
+                          'dewpoint'    : 60 }
 
     def __init__(self, engine, config_dict):
         
@@ -493,20 +500,23 @@ class StdWunderground(StdRESTful):
             _ambient_dict.setdefault('log_failure', False)
             _ambient_dict.setdefault('max_backlog', 0)
             _ambient_dict.setdefault('max_tries', 1)
+            self.stale_dict = config_dict['StdRESTful']['Wunderground'].get('Stale', 
+                                                                            StdWunderground.default_stale_dict)
             self.loop_queue = Queue.Queue()
             self.loop_thread = AmbientLoopThread(self.loop_queue,
                                                  _manager_dict,
                                                  protocol_name="Wunderground-RF",
                                                  **_ambient_dict) 
             self.loop_thread.start()
-            self.bind(weewx.NEW_LOOP_PACKET, self.new_loop_packet)
+            self.bind(weewx.UPDATED_ACCUMULATOR, self.new_loop_packet)
             syslog.syslog(syslog.LOG_INFO, 
                           "restx: Wunderground-RF: Data for station %s will be posted" %
                           _ambient_dict['station'])
 
     def new_loop_packet(self, event):
         """Puts new LOOP packets in the loop queue"""
-        self.loop_queue.put(event.packet)
+        packet = event.accumulator.get_most_recent(self.stale_dict)
+        self.loop_queue.put(packet)
 
     def new_archive_record(self, event):
         """Puts new archive records in the archive queue"""
