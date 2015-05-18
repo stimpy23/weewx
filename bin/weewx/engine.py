@@ -462,12 +462,14 @@ class StdArchive(StdService):
             self.archive_delay = to_int(config_dict['StdArchive'].get('archive_delay', 15))
             software_interval  = to_int(config_dict['StdArchive'].get('archive_interval', 300))
             self.loop_hilo     = to_bool(config_dict['StdArchive'].get('loop_hilo', True))
+            self.stale_dict    = config_dict['StdArchive'].get('Stale', {})
         else:
             self.data_binding = 'wx_binding'
             self.record_generation = 'hardware'
             self.archive_delay = 15
             software_interval = 300
             self.loop_hilo = True
+            self.stale_dict = {}
             
         syslog.syslog(syslog.LOG_INFO, "engine: Archive will use data binding %s" % self.data_binding)
         
@@ -545,7 +547,10 @@ class StdArchive(StdService):
             (self.old_accumulator, self.accumulator) = (self.accumulator, self._new_accumulator(the_time))
             # Add the LOOP packet to the new accumulator:
             self.accumulator.addRecord(event.packet, self.loop_hilo)
-
+            
+        most_recent_packet = self.accumulator.get_most_recent(self.stale_dict)
+        self.engine.dispatchEvent(weewx.Event(weewx.NEW_CACHE_PACKET, packet=most_recent_packet))
+        
     def check_loop(self, event):
         """Called after any loop packets have been processed. This is the opportunity
         to break the main loop by throwing an exception."""
