@@ -584,9 +584,7 @@ class StdArchive(StdService):
             (self.old_accumulator, self.accumulator) = (self.accumulator, self._new_accumulator(the_time))
             # Add the LOOP packet to the new accumulator:
             self.accumulator.addRecord(event.packet, self.loop_hilo)
-            
-        self.engine.dispatchEvent(weewx.Event(weewx.UPDATED_ACCUMULATOR, accumulator=self.accumulator))
-        
+
     def check_loop(self, event):
         """Called after any loop packets have been processed. This is the opportunity
         to break the main loop by throwing an exception."""

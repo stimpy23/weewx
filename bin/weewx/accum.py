@@ -259,8 +259,6 @@ class Accum(dict):
         
         # Go through all observation types.
         for obs_type in self:
-            if obs_type == 'dateTime':
-                continue
             # Get the proper extraction function...
             func = extract_dict.get(obs_type, Accum.avg_extract)
             # ... then call it
@@ -268,20 +266,6 @@ class Accum(dict):
 
         return record
 
-    def get_most_recent(self, stale_dict):
-        
-        record = {'dateTime' : self['dateTime'].last,
-                  'usUnits'  : self.unit_system}
-    
-        for obs_type in self:
-            if obs_type in ['dateTime', 'usUnits']:
-                continue
-            if obs_type not in stale_dict or self[obs_type].lasttime is None or \
-                record['dateTime'] - self[obs_type].lasttime <= stale_dict[obs_type]:
-                record[obs_type] = self[obs_type].last
-
-        return record
-        
     def set_stats(self, obs_type, stats_tuple):
         
         self.init_type(obs_type)
@@ -369,7 +353,8 @@ class Accum(dict):
 init_dict = ListOfDicts({'wind' : VecStats})
 
 add_record_dict = ListOfDicts({'windSpeed' : Accum.add_wind_value,
-                               'usUnits'   : Accum.check_units})
+                               'usUnits'   : Accum.check_units,
+                               'dateTime'  : Accum.noop})
 
 extract_dict = ListOfDicts({'wind'      : Accum.wind_extract,
                             'rain'      : Accum.sum_extract,
