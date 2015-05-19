@@ -82,8 +82,6 @@ class NEW_LOOP_PACKET(object):
     which is the new LOOP packet."""
 class LOOP_CACHE_UPDATED(object):
     """Event issued when the loop packet cache has an update."""
-class UPDATED_ACCUMULATOR(object):
-    """Event issued when the record accumulators have been updated by a LOOP packet."""
 class CHECK_LOOP(object):
     """Event issued in the main loop, right after a new LOOP packet has been processed. Generally,
     it is used to throw an exception, breaking the main loop, so the console can be used
