@@ -442,6 +442,45 @@ class StdQC(StdService):
                     event.record[obs_type] = None
 
 #==============================================================================
+#                    Class StdCache
+#==============================================================================
+
+class Cache(object):
+    
+    def __init__(self):
+        self.values = {}
+        self.timestamps = {}
+        
+    def add_record(self, record):
+        for obs in record:
+            self.values[obs] = record[obs]
+            self.timestamps[obs] = record['dateTime']
+
+    def get_most_recent(self, stale_dict):
+        
+        record = {}
+        if 'dateTime' in self.values:
+            ref_time = self.values['dateTime']
+            for obs in self.values:
+                if obs not in stale_dict or (ref_time - self.timestamps[obs]) <= stale_dict[obs]:
+                    record[obs] = self.values[obs]
+        return record
+
+    
+class StdCache(StdService):
+    """Service that caches loop packets."""
+    def __init__(self, engine, config_dict):
+        super(StdCache, self).__init__(engine, config_dict)
+        self.cache = Cache()
+        self.bind(weewx.NEW_LOOP_PACKET,    self.new_loop_packet)
+
+    def new_loop_packet(self, event):
+        self.cache.add_record(event.packet)
+        
+        # Let any interested service know that the cache has been updated:
+        self.engine.dispatchEvent(weewx.Event(weewx.LOOP_CACHE_UPDATED, cache=self.cache))
+    
+#==============================================================================
 #                    Class StdArchive
 #==============================================================================
 
