@@ -508,14 +508,14 @@ class StdWunderground(StdRESTful):
                                                  protocol_name="Wunderground-RF",
                                                  **_ambient_dict) 
             self.loop_thread.start()
-            self.bind(weewx.UPDATED_ACCUMULATOR, self.new_loop_packet)
+            self.bind(weewx.LOOP_CACHE_UPDATED, self.loop_cache_updated)
             syslog.syslog(syslog.LOG_INFO, 
                           "restx: Wunderground-RF: Data for station %s will be posted" %
                           _ambient_dict['station'])
 
-    def new_loop_packet(self, event):
+    def loop_cache_updated(self, event):
         """Puts new LOOP packets in the loop queue"""
-        packet = event.accumulator.get_most_recent(self.stale_dict)
+        packet = event.cache.get_most_recent(self.stale_dict)
         self.loop_queue.put(packet)
 
     def new_archive_record(self, event):

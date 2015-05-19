@@ -6,7 +6,7 @@
 """Package weewx, containing modules specific to the weewx runtime engine."""
 import time
 
-__version__="3.2.0a1"
+__version__="3.3.0a1"
 
 # Holds the program launch time in unix epoch seconds:
 # Useful for calculating 'uptime.'
@@ -80,6 +80,8 @@ class PRE_LOOP(object):
 class NEW_LOOP_PACKET(object):
     """Event issued when a new LOOP packet is available. The event contains attribute 'packet',
     which is the new LOOP packet."""
+class LOOP_CACHE_UPDATED(object):
+    """Event issued when the loop packet cache has an update."""
 class UPDATED_ACCUMULATOR(object):
     """Event issued when the record accumulators have been updated by a LOOP packet."""
 class CHECK_LOOP(object):
