@@ -108,8 +108,7 @@ class StdEngine(object):
     def preLoadServices(self, config_dict):
         
         self.stn_info = weewx.station.StationInfo(self.console, **config_dict['Station'])
-        self.db_binder = weewx.manager.DBBinder(config_dict['DataBindings'],
-                                                config_dict['Databases'])
+        self.db_binder = weewx.manager.DBBinder(config_dict)
         
     def loadServices(self, config_dict):
         """Set up the services to be run."""
@@ -912,6 +911,7 @@ def main(options, args, EngineClass=StdEngine) :
         except OSError, e:
             # Caught an OS error. Log it, wait 10 seconds, then try again
             syslog.syslog(syslog.LOG_CRIT, "engine: Caught OSError: %s" % e)
+            weeutil.weeutil.log_traceback("    ****  ", syslog.LOG_DEBUG)
             syslog.syslog(syslog.LOG_CRIT, "    ****  Waiting 10 seconds then retrying...")
             time.sleep(10)
             syslog.syslog(syslog.LOG_NOTICE,"engine: retrying...")
@@ -935,7 +935,7 @@ def main(options, args, EngineClass=StdEngine) :
             syslog.syslog(syslog.LOG_CRIT, "engine: Caught unrecoverable exception in engine:")
             syslog.syslog(syslog.LOG_CRIT, "    ****  %s" % ex)
             # Include a stack traceback in the log:
-            weeutil.weeutil.log_traceback("    ****  ")
+            weeutil.weeutil.log_traceback("    ****  ", syslog.LOG_CRIT)
             syslog.syslog(syslog.LOG_CRIT, "    ****  Exiting.")
             # Reraise the exception (this should cause the program to exit)
             raise
