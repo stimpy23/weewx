@@ -452,17 +452,16 @@ class StdQC(StdService):
 class Cache(object):
     
     def __init__(self):
-        self.values = {}
-        self.timestamps = {}
+        self.values = dict()
+        self.timestamps = dict()
         
     def add_record(self, record):
         for obs in record:
             self.values[obs] = record[obs]
             self.timestamps[obs] = record['dateTime']
 
-    def get_most_recent(self, stale_dict):
-        
-        record = {}
+    def get_most_recent(self, stale_dict=dict()):
+        record = dict()
         if 'dateTime' in self.values:
             ref_time = self.values['dateTime']
             for obs in self.values:
@@ -744,6 +743,7 @@ class StdPrint(StdService):
 
         self.bind(weewx.NEW_LOOP_PACKET, self.new_loop_packet)
         self.bind(weewx.NEW_ARCHIVE_RECORD, self.new_archive_record)
+        self.bind(weewx.LOOP_CACHE_UPDATED, self.loop_cache_updated)
         
     def new_loop_packet(self, event):
         """Print out the new LOOP packet"""
@@ -752,6 +752,11 @@ class StdPrint(StdService):
     def new_archive_record(self, event):
         """Print out the new archive record."""
         print "REC:   ", weeutil.weeutil.timestamp_to_string(event.record['dateTime']), StdPrint.sort(event.record)
+    
+    def loop_cache_updated(self, event):
+        """Print out the new cached packet."""
+        packet = event.cache.get_most_recent()
+        print "CACHE: ", weeutil.weeutil.timestamp_to_string(packet['dateTime']), StdPrint.sort(packet)
        
     @staticmethod 
     def sort(rec):
